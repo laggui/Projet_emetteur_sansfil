@@ -1,4 +1,4 @@
-/* 
+/*
  * File:   main.c
  * Author: g.lagrange
  *
@@ -21,13 +21,13 @@
 
 #pragma config  OSC = INTIO67, BOREN = OFF, PWRT = ON, WDT = OFF, DEBUG = ON, LVP = OFF
 
-#define ROW_1       PORTBbits.RB6   //K
-#define ROW_2       PORTBbits.RB5   //J
-#define ROW_3       PORTBbits.RB4   //H
+#define ROW_1       PORTBbits.RB0   //D
+#define ROW_2       PORTBbits.RB1   //E
+#define ROW_3       PORTBbits.RB2   //F
 #define ROW_4       PORTBbits.RB3   //G
-#define COLUMN_1    TRISBbits.RB2   //F
-#define COLUMN_2    TRISBbits.RB1   //E
-#define COLUMN_3    TRISBbits.RB0   //D
+#define COLUMN_1    TRISBbits.RB4   //H
+#define COLUMN_2    TRISBbits.RB5   //J
+#define COLUMN_3    TRISBbits.RB6   //K
 
 void putch(char data);
 char getch();
@@ -41,6 +41,7 @@ char transmitCounter = 0;
 
 int main(int argc, char** argv) {
     OSCCON = 0xF7; //0b11110111;
+    //TRISD = 0x00; //LED output
     TRISC = 0x80; //RX: input, TX: output
     TRISB = 0x10; //Columns and rows = inputs, except column 1 = output
     LATB = 0x00;
@@ -77,7 +78,7 @@ void interrupt ISR() {
                 COLUMN_3 = 0;
                 break;
         }
-        keypad[column_number] = (ROW_1) | ((ROW_2) << 1) | ((ROW_3) << 2) | ((ROW_4) << 3);
+        keypad[column_number] = (ROW_1 == 0) | ((ROW_2 == 0) << 1) | ((ROW_3 == 0) << 2) | ((ROW_4 == 0) << 3);
 
         if (column_number == 2) {
             column_number = 0;
@@ -85,22 +86,39 @@ void interrupt ISR() {
             column_number++;
         }
 
-        if (transmitCounter == 2) { //do not transmit until done scanning            
-            for (i = 0; i < 3; i++) {
-                while (!buttonToSend && j < 4) {
-                    if (keypad[i] & (1 << j)) {
-                        buttonToSend = j; //row number
-                        buttonToSend |= i << 2; //columns and rows
-                    }
-                    j++;
-                }
-                if (buttonToSend) {
-                    WriteUSART(buttonToSend);
-                }
-            }
-            transmitCounter = 0;
+        switch (keypad[0]){
+            case 0x01: //1
+                LATD = 0x80;
+                break;
+            case 0x02: //4
+                LATD = 0x40;
+                break;
+            case 0x04: //7
+                LATD = 0x20;
+                break;
+            case 0x08: //*
+                LATD = 0x10;
+                break;
+            default:;
         }
-        transmitCounter++;
+
+
+//        if (transmitCounter == 2) { //do not transmit until done scanning
+//            for (i = 0; i < 3; i++) {
+//                while (!buttonToSend && j < 4) {
+//                    if (keypad[i] & (1 << j)) {
+//                        buttonToSend = j; //row number
+//                        buttonToSend |= i << 2; //columns and rows
+//                    }
+//                    j++;
+//                }
+//                if (buttonToSend) {
+//                    WriteUSART(buttonToSend);
+//                }
+//            }
+//            transmitCounter = 0;
+//        }
+//        transmitCounter++;
     }
 }
 
